@@ -1,0 +1,99 @@
+
+Wireless Serial Proxy
+================
+
+For remote collection of storm water data.
+
+## Introduction ##
+
+This project began in Spring 2012 by Ames Bielenberg as a directed reading (E93)
+under Professor Erik Cheever at Swarthmore College.
+
+## Motivation ##
+
+When studying the environmental effects of storm water runoff, researchers often
+use samplers or sondes. Sondes measure properties of the water like temperature 
+and chemical composition, while samplers collect samples of water into bottles,
+and measure flow-rate and rainfall. Researches download the data from these
+machines using a serial port, requiring a laptop or data retrieval device to
+be brought into close physical proximity with the sampler. This becomes
+difficult when samplers are installed in remote or difficult-to-access
+locations.
+
+The goal of this project is to provide researchers with real-time access to 
+remote sensing devices using the cellular network.
+
+## Overview ##
+
+The system has four primary components:
+
+- Client
+- Server
+- Transceiver
+- Device
+
+A **client** is some type of software that wants to communicate with the device.
+This is either a simple Telnet terminal, or something more sophisticated.
+In this case, the client program is Isco Flowlink.
+
+The **server** allows the client and transceiver to communicate.
+It listens for connections on two ports, and when both ends are connected, it
+creates a tunnel between the sockets.
+
+The **transceiver** connects to the server using a wireless module,
+and to the device over serial. This component is more involved than the others,
+and will be discussed further below.
+
+The **device** is the remote serial endpoint.
+In this case, we are talking to an Isco 6712C Compact Portable Sampler.
+
+
+## Transceiver ##
+
+The transceiver is implemented using the popular Arduino platform.
+
+### Hardware ###
+
+The Arduino Mega 2560 micro controller board was used.
+Arduino was used because of its simplicity, availability and library support.
+The Mega model was chosen because it features 4 hardware serial ports and ample 
+buffer memory.
+
+For wireless, the ADH8066 GSM Module is used. This module takes a SIM card and
+supports the standard mobile phone features: Voice calls, SMS, and Data.
+The "ADH8066 Evaluation Board", available from Sparkfun supports the module.
+
+A MAX232 level shifter IC is used to interface the Arduino with the serial device.
+
+### Software ###
+
+The program on the Arduino must perform several tasks.
+First, it configures the GSM module and connects to the server.
+Once the server confirms the link,
+all traffic must be forwarded between the device and the server.
+
+
+The program works as follows:
+
+ - we start by checking if the module is on by 
+ repeatedly emitting the 'AT' command and waiting for 'OK'.
+   - if we don't get a response, press the "ON Key" until 'Ready'
+   - if we do, emit 'CREG?' to check if it's registered to the network
+ - wait for registration (CREG)
+ - define the PDP context (AIPDCONT), wait for OK
+ - attach GPRS (AIPA)
+   - if error, detatch and try again
+ - open the socket (AIPO) to the server
+   - if error, try disconnecting and try again
+ - send "hello.", wait for "welcome."
+ - now we're in CONNECTED mode.
+   - anything written to the serial port is sent to the server
+   - anything recieved from the server is written to the serial port
+   - if the server disconnects, we close the socket and try to connect again.
+
+The above functionality is implemented using a state machine.
+This design allows for the event-driven nature of the system.
+
+
+
+
