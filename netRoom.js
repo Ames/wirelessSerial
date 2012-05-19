@@ -15,6 +15,9 @@ var serverA = net.createServer(function(c) { //'connection' listener
   ePts.a.on('end', function() {
     console.log('A disconnected');
     ePts.a=0;
+    
+    if(ePts.b)
+        ePts.b.end();
   });
 
   
@@ -41,6 +44,8 @@ var serverB = net.createServer(function(c) { //'connection' listener
   ePts.b.on('end', function() {
     console.log('B disconnected');
     ePts.b=0;
+    if(ePts.a)
+        ePts.a.end();
   });
   
 //  ePts.b.write(telnetConfig);
@@ -53,6 +58,8 @@ var serverB = net.createServer(function(c) { //'connection' listener
 
 });
 
+
+// we should handle these errors
 serverA.listen(8801, function() { //'listening' listener
   console.log('A bound');
 });
